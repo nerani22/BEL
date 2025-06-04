@@ -3,11 +3,27 @@
   hosts: all
   become: yes
 
+  vars:
+    leapp_report_dir: "/var/lib/leapp"
+    leapp_artifacts_dir: "/etc/leapp/files"
+    RHEL_9_ISO: "/path/RHEL9-Binary-DVD.iso"
+
   tasks:
-    - name: Run the upgrade
-      command: leapp upgrade
-      register: upgrade_result
-      failed_when: "'FAIL' in upgrade_result.stderr"
+    - name: Run Leapp upgrade using ISO
+      command: >
+        leapp upgrade --no-rhsm --iso {{ RHEL_9_ISO }}
+      register: upgrade_output
+      failed_when: "'FAIL' in upgrade_output.stderr"
+      #ignore_errors: yes
+      
+    - name: Show upgrade output
+      debug:
+        var: upgrade_output.stdout_lines
+      
+    #- name: Run the upgrade online
+    #  command: leapp upgrade
+    #  register: upgrade_result
+    #  failed_when: "'FAIL' in upgrade_result.stderr"
 
     - name: Reboot system for upgrade
       reboot:
