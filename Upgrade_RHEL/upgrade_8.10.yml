@@ -46,7 +46,7 @@
       failed_when: repo_check.rc != 0
       changed_when: false
 
-    - name: “Pre‑upgrade: Check available disk space (≥10 GB recommended)”
+    - name: “Pre‑upgrade | Check available disk space (≥10 GB recommended)”
       shell: |
         avail=$(df --output=avail / | tail -n1)
         avail_gb=$(( avail / 1024 / 1024 ))
@@ -57,7 +57,7 @@
       register: disk_space
       failed_when: disk_space.rc != 0
 
-    - name: “Pre‑upgrade: Ensure no excluded or locked packages”
+    - name: “Pre‑upgrade | Ensure no excluded or locked packages”
       shell: |
         # If you maintain exclusion lists, fail if any excluded pkgs are installed
         # (example: do not allow kernel-rt or custom builds)
@@ -139,7 +139,7 @@
       changed_when: true
       ignore_errors: true
 
-    - name: “Post‑upgrade: Report final state”
+    - name: “Post‑upgrade | Report final state”
       debug:
         msg: |
           “{{ inventory_hostname }} successfully upgraded to 
