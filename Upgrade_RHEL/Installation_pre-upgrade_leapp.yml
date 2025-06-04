@@ -7,7 +7,7 @@
   vars:
     leapp_report_dir: "/var/lib/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
-    RHEL_9_ISO: "/path/RHEL9-Binary-DVD.iso"
+    RHEL_9_ISO: "/tmp/rhel-9.6-x86_64-dvd.iso"
 
   tasks:
     - name: Ensure Leapp is installed
