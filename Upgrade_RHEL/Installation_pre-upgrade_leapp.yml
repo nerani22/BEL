@@ -18,11 +18,13 @@
           - leapp-repository
           - leapp-upgrade
         state: present
+      become: yes
 
     - name: Create mount point for ISO
       file:
         path: "{{ mount_path }}"
         state: directory
+      become: yes
 
     - name: Mount RHEL 9 ISO
       mount:
@@ -31,6 +33,7 @@
         fstype: iso9660
         opts: loop
         state: mounted
+      become: yes
 
     - name: Remove unsupported AllowZoneDrifting in firewalld
       lineinfile:
@@ -55,12 +58,14 @@
         content: |
           [remove_pam_pkcs11_module_check]
           confirm = True
+      become: yes
 
     - name: Run Leapp pre-upgrade using ISO
       command: >
         leapp preupgrade --no-rhsm --iso {{ RHEL_9_ISO }}
       register: preupgrade_output
       failed_when: "'FAIL' in preupgrade_output.stderr"
+      become: yes
       #ignore_errors: yes
 
     - name: Check if pre-upgrade passed
@@ -90,6 +95,7 @@
         grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
       register: inhibitors
       failed_when: inhibitors.stdout != ""
+      become: yes
 
     - name: Notify pre-upgrade passed
       debug:
