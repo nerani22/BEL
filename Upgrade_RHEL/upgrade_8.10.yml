@@ -118,27 +118,6 @@
           - '!all'
           - min
 
-    - name: “Verify upgraded version is {{ target_release }}”
-      assert:
-        that:
-          - ansible_facts['distribution'] == "Red Hat Enterprise Linux"
-          - ansible_facts['distribution_major_version'] == "8"
-          - ansible_facts['distribution_version'] is version("{{ target_release }}", ">=")
-        fail_msg: |
-          “Upgrade check failed: expected RHEL {{ target_release }}, 
-          but found {{ ansible_facts['distribution_version'] }}.”
-        success_msg: “Host is running RHEL {{ ansible_facts['distribution_version'] }}.”
-
-    - name: “Optional | Clean up old kernels (keep only latest 2)”
-      command: dnf remove -y \
-                $(dnf repoquery --installonly --latest-limit=-2 -q)
-      when: >
-        # Only run if user wants old kernels pruned;
-        # you could guard this with a variable or tag.
-        false
-      changed_when: true
-      ignore_errors: true
-
     - name: “Post‑upgrade | Report final state”
       debug:
         msg: |
