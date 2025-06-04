@@ -1,11 +1,11 @@
 ---
-- name: RHEL 9 to 10 Upgrade - Phase 1 (Pre-upgrade)
+- name: RHEL 8.6 to 9.x Upgrade - Phase 1 (Pre-upgrade)
   hosts: all
   become: yes
   gather_facts: yes
 
   vars:
-    leapp_report_dir: "/var/lib/leapp"
+    leapp_report_dir: "/var/log/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
     RHEL_9_ISO: "/tmp/rhel-9.6-x86_64-dvd.iso"
     mount_path: /mnt/rhel9
@@ -31,6 +31,21 @@
         fstype: iso9660
         opts: loop
         state: mounted
+
+    - name: Remove unsupported AllowZoneDrifting in firewalld
+      lineinfile:
+        path: /etc/firewalld/firewalld.conf
+        regexp: '^AllowZoneDrifting='
+        state: absent
+      notify: Restart firewalld
+
+    - name: Allow root login for SSH temporarily (if disabled)
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin yes'
+        state: present
+      notify: Restart sshd
 
     - name: Prepopulate Leapp answerfile
       copy:
@@ -68,12 +83,12 @@
     #  register: preupgrade_result
     #  failed_when: "'FAIL' in preupgrade_result.stderr"
 
-    #- name: Parse Leapp report and fail if issues found
-    #  shell: |
-    #    grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
-    #  register: inhibitors
-    #  failed_when: inhibitors.stdout != ""
+    - name: Parse Leapp report and fail if issues found
+      shell: |
+        grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
+      register: inhibitors
+      failed_when: inhibitors.stdout != ""
 
     - name: Notify pre-upgrade passed
       debug:
-        msg: "Pre-upgrade passed, ready for upgrade to RHEL 10."
+        msg: "Pre-upgrade passed, ready for upgrade to RHEL 9.x."
