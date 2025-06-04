@@ -32,7 +32,7 @@
         reboot_timeout: 900
         #test_command: "rpm -qf /etc/redhat-release"
 
-      handlers:
+ handlers:
     - name: Restart firewalld
       service:
         name: firewalld
