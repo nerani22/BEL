@@ -1,0 +1,38 @@
+---
+- name: RHEL 9 to 10 Upgrade - Phase 1 (Pre-upgrade)
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    leapp_report_dir: "/var/log/leapp"
+    leapp_artifacts_dir: "/etc/leapp/files"
+
+  tasks:
+    - name: Install Leapp packages
+      dnf:
+        name:
+          - leapp
+          - leapp-upgrade
+        state: present
+
+    #- name: Copy required upgrade data (custom answers, if any)
+    #  copy:
+    #    src: files/answerfile
+    #    dest: "{{ leapp_artifacts_dir }}/answerfile"
+    #    mode: 0644
+
+    - name: Run pre-upgrade check
+      command: leapp preupgrade
+      register: preupgrade_result
+      failed_when: "'FAIL' in preupgrade_result.stderr"
+
+    - name: Parse Leapp report and fail if issues found
+      shell: |
+        grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
+      register: inhibitors
+      failed_when: inhibitors.stdout != ""
+
+    - name: Notify pre-upgrade passed
+      debug:
+        msg: "Pre-upgrade passed, ready for upgrade to RHEL 10."
