@@ -8,6 +8,7 @@
     leapp_report_dir: "/var/lib/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
     RHEL_9_ISO: "/tmp/rhel-9.6-x86_64-dvd.iso"
+    mount_path: /mnt/rhel9
 
   tasks:
     - name: Ensure Leapp is installed
@@ -17,6 +18,19 @@
           - leapp-repository
           - leapp-upgrade
         state: present
+
+    - name: Create mount point for ISO
+      file:
+        path: "{{ mount_path }}"
+        state: directory
+
+    - name: Mount RHEL 9 ISO
+      mount:
+        path: "{{ mount_path }}"
+        src: "{{ RHEL_9_ISO }}"
+        fstype: iso9660
+        opts: loop
+        state: mounted
 
     - name: Prepopulate Leapp answerfile
       copy:
