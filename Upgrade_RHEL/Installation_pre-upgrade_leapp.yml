@@ -7,14 +7,34 @@
   vars:
     leapp_report_dir: "/var/log/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
+    RHEL_9_ISO: "/path/RHEL9-Binary-DVD.iso"
 
   tasks:
-    - name: Install Leapp packages
-      dnf:
+    - name: Ensure Leapp is installed
+      package:
         name:
           - leapp
+          - leapp-repository
           - leapp-upgrade
         state: present
+
+    - name: Run Leapp pre-upgrade using ISO
+      command: >
+        leapp preupgrade --no-rhsm --iso {{ RHEL_9_ISO }}
+      register: preupgrade_output
+      failed_when: "'FAIL' in preupgrade_output.stderr"
+      #ignore_errors: yes
+
+    - name: Check if pre-upgrade passed
+      debug:
+        var: preupgrade_output.stdout_lines
+    
+    #- name: Install Leapp packages online server
+    #  dnf:
+    #    name:
+    #      - leapp
+    #      - leapp-upgrade
+    #    state: present
 
     #- name: Copy required upgrade data (custom answers, if any)
     #  copy:
@@ -22,10 +42,10 @@
     #    dest: "{{ leapp_artifacts_dir }}/answerfile"
     #    mode: 0644
 
-    - name: Run pre-upgrade check
-      command: leapp preupgrade
-      register: preupgrade_result
-      failed_when: "'FAIL' in preupgrade_result.stderr"
+    #- name: Run pre-upgrade check
+    #  command: leapp preupgrade
+    #  register: preupgrade_result
+    #  failed_when: "'FAIL' in preupgrade_result.stderr"
 
     - name: Parse Leapp report and fail if issues found
       shell: |
