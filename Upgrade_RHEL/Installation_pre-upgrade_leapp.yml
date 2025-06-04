@@ -38,6 +38,7 @@
         regexp: '^AllowZoneDrifting='
         state: absent
       notify: Restart firewalld
+      become: yes
 
     - name: Allow root login for SSH temporarily (if disabled)
       lineinfile:
@@ -46,6 +47,7 @@
         line: 'PermitRootLogin yes'
         state: present
       notify: Restart sshd
+      become: yes
 
     - name: Prepopulate Leapp answerfile
       copy:
