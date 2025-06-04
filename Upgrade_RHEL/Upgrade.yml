@@ -1,0 +1,14 @@
+---
+- name: RHEL 9 to 10 Upgrade - Phase 2 (Execute Upgrade)
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Run the upgrade
+      command: leapp upgrade
+      register: upgrade_result
+      failed_when: "'FAIL' in upgrade_result.stderr"
+
+    - name: Reboot system for upgrade
+      reboot:
+        reboot_timeout: 900
