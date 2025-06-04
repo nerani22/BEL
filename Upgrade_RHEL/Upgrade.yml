@@ -28,3 +28,4 @@
     - name: Reboot system for upgrade
       reboot:
         reboot_timeout: 900
+        test_command: "rpm -qf /etc/redhat-release"
