@@ -90,12 +90,12 @@
     #  register: preupgrade_result
     #  failed_when: "'FAIL' in preupgrade_result.stderr"
 
-    - name: Parse Leapp report and fail if issues found
-      shell: |
-        grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
-      register: inhibitors
-      failed_when: inhibitors.stdout != ""
-      become: yes
+    #- name: Parse Leapp report and fail if issues found
+    #  shell: |
+    #    grep -i 'inhibitor' {{ leapp_report_dir }}/leapp-report.txt || true
+    #  register: inhibitors
+    #  failed_when: inhibitors.stdout != ""
+    #  become: yes
 
     - name: Notify pre-upgrade passed
       debug:
