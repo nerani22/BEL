@@ -4,9 +4,9 @@
   become: yes
 
   vars:
-    leapp_report_dir: "/var/lib/leapp"
+    leapp_report_dir: "/var/log/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
-    RHEL_9_ISO: "/tmp/rhel-9.6-x86_64-dvd.iso"
+    RHEL_9_ISO: "/home/neha/rhel-9.6-x86_64-dvd.iso"
 
   tasks:
     - name: Run Leapp upgrade using ISO
