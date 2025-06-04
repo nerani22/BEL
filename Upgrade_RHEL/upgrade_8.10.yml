@@ -129,7 +129,7 @@
           but found {{ ansible_facts['distribution_version'] }}.”
         success_msg: “Host is running RHEL {{ ansible_facts['distribution_version'] }}.”
 
-    - name: “Optional: Clean up old kernels (keep only latest 2)”
+    - name: “Optional | Clean up old kernels (keep only latest 2)”
       command: dnf remove -y \
                 $(dnf repoquery --installonly --latest-limit=-2 -q)
       when: >
