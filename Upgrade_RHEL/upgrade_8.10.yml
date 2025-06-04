@@ -37,8 +37,8 @@
 
     - name: “Clean all yum metadata/caches”
       command: dnf clean all
-      args:
-        warn: false
+      #args:
+      #  warn: false
 
     - name: “Verify local repo is reachable”
       command: dnf repolist --disablerepo="*" --enablerepo="{{ local_repo_name }}-*"
