@@ -1,0 +1,146 @@
+---
+# rhel8_to_8.10_upgrade.yml
+# Upgrade RHEL 8.6 → 8.10 in an air‑gapped AAP 2.5 setup.
+
+- name: “In‑place upgrade RHEL 8.6 → 8.10 (air‑gapped)”
+  hosts: all
+  become: true
+  gather_facts: true
+
+  vars:
+    # Set this to wherever your offline mirror lives (e.g., file:///opt/repos/rhel8.10)
+    local_repo_baseurl: "file:///opt/repos/rhel8.10"
+
+    # Name for the repo file we’ll create
+    local_repo_name: "rhel-8.10-local"
+
+    # Desired release version
+    target_release: "8.10"
+
+  tasks:
+    - name: “Ensure local RHEL 8.10 repo file exists”
+      copy:
+        dest: "/etc/yum.repos.d/{{ local_repo_name }}.repo"
+        mode: 0644
+        content: |
+          [{{ local_repo_name }}-BaseOS]
+          name=RHEL 8.10 BaseOS (Local)
+          baseurl={{ local_repo_baseurl }}/BaseOS
+          enabled=1
+          gpgcheck=0
+
+          [{{ local_repo_name }}-AppStream]
+          name=RHEL 8.10 AppStream (Local)
+          baseurl={{ local_repo_baseurl }}/AppStream
+          enabled=1
+          gpgcheck=0
+
+    - name: “Clean all yum metadata/caches”
+      command: dnf clean all
+      args:
+        warn: false
+
+    - name: “Verify local repo is reachable”
+      command: dnf repolist --disablerepo="*" --enablerepo="{{ local_repo_name }}-*"
+      register: repo_check
+      failed_when: repo_check.rc != 0
+      changed_when: false
+
+    - name: “Pre‑upgrade: Check available disk space (≥10 GB recommended)”
+      shell: |
+        avail=$(df --output=avail / | tail -n1)
+        avail_gb=$(( avail / 1024 / 1024 ))
+        if [ $avail_gb -lt 10 ]; then
+          echo "ERROR: Only ${avail_gb} GB free (<10 GB)"
+          exit 1
+        fi
+      register: disk_space
+      failed_when: disk_space.rc != 0
+
+    - name: “Pre‑upgrade: Ensure no excluded or locked packages”
+      shell: |
+        # If you maintain exclusion lists, fail if any excluded pkgs are installed
+        # (example: do not allow kernel-rt or custom builds)
+        # Adjust this grep to match any disallowed patterns
+        rpm -qa | grep -E 'kernel-rt|customkernel'
+      register: forbidden_pkg
+      failed_when: forbidden_pkg.stdout != ""
+      changed_when: false
+      ignore_errors: false
+
+    - block:
+        - name: “Perform in‑place upgrade to {{ target_release }}”
+          dnf:
+            name: "*"
+            state: latest
+            releasever: "{{ target_release }}"
+            update_only: no
+            disablerepo: "*"
+            enablerepo: "{{ local_repo_name }}-*"
+            skip_broken: no
+          register: upgrade_result
+
+        - name: “Record upgrade success message”
+          debug:
+            msg: "DNF upgrade to {{ target_release }} completed."
+
+      rescue:
+        - name: “Fail if upgrade task failed”
+          fail:
+            msg: |
+              “DNF upgrade to {{ target_release }} encountered an error. 
+              Please inspect the logs on {{ inventory_hostname }}.”
+
+    - name: “Sync filesystem and reboot into new kernel”
+      block:
+        - name: “Sync disks before reboot”
+          command: sync
+
+        - name: “Reboot host”
+          reboot:
+            reboot_timeout: 900
+            test_command: "rpm -qf /etc/redhat-release"
+      rescue:
+        - name: “Fail if host did not reboot properly”
+          fail:
+            msg: "Host {{ inventory_hostname }} failed to reboot after upgrade."
+
+    - name: “Wait for SSH to come back up”
+      wait_for:
+        port: 22
+        host: "{{ inventory_hostname }}"
+        timeout: 600
+        state: started
+
+    - name: “Gather new facts after reboot”
+      setup:
+        gather_subset:
+          - '!all'
+          - min
+
+    - name: “Verify upgraded version is {{ target_release }}”
+      assert:
+        that:
+          - ansible_facts['distribution'] == "Red Hat Enterprise Linux"
+          - ansible_facts['distribution_major_version'] == "8"
+          - ansible_facts['distribution_version'] is version("{{ target_release }}", ">=")
+        fail_msg: |
+          “Upgrade check failed: expected RHEL {{ target_release }}, 
+          but found {{ ansible_facts['distribution_version'] }}.”
+        success_msg: “Host is running RHEL {{ ansible_facts['distribution_version'] }}.”
+
+    - name: “Optional: Clean up old kernels (keep only latest 2)”
+      command: dnf remove -y \
+                $(dnf repoquery --installonly --latest-limit=-2 -q)
+      when: >
+        # Only run if user wants old kernels pruned;
+        # you could guard this with a variable or tag.
+        false
+      changed_when: true
+      ignore_errors: true
+
+    - name: “Post‑upgrade: Report final state”
+      debug:
+        msg: |
+          “{{ inventory_hostname }} successfully upgraded to 
+          RHEL {{ ansible_facts['distribution_version'] }}.”
