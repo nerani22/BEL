@@ -15,6 +15,7 @@
         leapp upgrade --no-rhsm --iso {{ RHEL_9_ISO }}
       register: upgrade_output
       failed_when: "'FAIL' in upgrade_output.stderr"
+      become: yes
       #ignore_errors: yes
       
     - name: Show upgrade output
