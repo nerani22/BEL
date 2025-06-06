@@ -13,5 +13,11 @@
         policy: targeted
         state: enforcing
 
+    - name: Push fix_compliance.sh to target
+      copy:
+        src: files/fix_compliance.sh
+        dest: /opt/scripts/fix_compliance.sh
+        mode: '0755'
+
     - name: Custom remediation script
       script: /opt/scripts/fix_compliance.sh
