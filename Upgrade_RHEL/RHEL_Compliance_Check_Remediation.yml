@@ -1,6 +1,4 @@
 ---
-# Workflow Template: RHEL Compliance Check and Remediation in Air-Gapped Network
-
 - name: Compliance Check Phase
   hosts: all
   gather_facts: true
