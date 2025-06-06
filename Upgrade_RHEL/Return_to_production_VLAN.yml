@@ -1,0 +1,7 @@
+---
+- name: Return to production VLAN
+  hosts: all
+  become: true
+  tasks:
+    - name: Restore original VLAN
+      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
