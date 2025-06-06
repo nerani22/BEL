@@ -20,3 +20,9 @@
     - name: Set fact if non-compliant
       set_fact:
         is_non_compliant: "{{ failed_rules.stdout|int > 0 }}"
+
+    - name: Pass compliance status to workflow
+      set_stats:
+        data:
+          compliance_status: "{{ 'non-compliant' if is_non_compliant else 'compliant' }}"
+
