@@ -1,0 +1,17 @@
+---
+- name: Apply compliance fixes
+  hosts: all
+  become: true
+  tasks:
+    - name: Ensure auditing tools
+      yum:
+        name: [aide, audit]
+        state: present
+
+    - name: Set SELinux enforcing
+      selinux:
+        policy: targeted
+        state: enforcing
+
+    - name: Custom remediation script
+      script: /opt/scripts/fix_compliance.sh
