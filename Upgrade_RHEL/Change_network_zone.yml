@@ -1,0 +1,7 @@
+---
+- name: Change network zone
+  hosts: all
+  become: true
+  tasks:
+    - name: Move node to VLAN 200
+      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
