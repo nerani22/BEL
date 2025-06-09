@@ -3,11 +3,15 @@
   hosts: all
   gather_facts: true
   tasks:
+    - name: Format the date
+      set_fact:
+       currentdate_: "{{ '%d_%m_%Y' | strftime(ansible_date_time.epoch) }}"
+
     - name: Run SCAP compliance scan
       ##command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
                #--results /tmp/results.xml --report /tmp/report.html \
                #/usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
-      command: oscap xccdf generate fix --fix-type ansible --profile ospp --output ospp-remediations.yml /tmp/results.xml
+      command: oscap xccdf generate fix --fix-type ansible --profile ospp --output "/tmp/ospp-remediations_{{currentdate_}}.yml" /tmp/results.xml
       register: compliance_check
       failed_when: false
 
