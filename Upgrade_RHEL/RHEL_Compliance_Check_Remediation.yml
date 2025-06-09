@@ -4,9 +4,9 @@
   gather_facts: true
   tasks:
     - name: Run SCAP compliance scan
-      command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_standard \
+      command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
                --results /tmp/results.xml --report /tmp/report.html \
-               /usr/share/xml/scap/ssg/content/ssg-rhel8-ds.xml
+               /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
       register: compliance_check
       failed_when: false
 
