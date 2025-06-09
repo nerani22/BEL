@@ -43,13 +43,13 @@
       delegate_to: localhost
 
     - name: Configure Git username
-      ansible.builtin.command: git config user.name "ansible-bot"
+      ansible.builtin.command: git config --global user.name "nerani22"
       args:
         chdir: "{{ dest_path }}"
       delegate_to: localhost
 
     - name: Configure Git email
-      ansible.builtin.command: git config user.email "nrathi@redhat.com"
+      ansible.builtin.command: git config --global user.email "nerani@redhat.com"
       args:
         chdir: "{{ dest_path }}"
       delegate_to: localhost
