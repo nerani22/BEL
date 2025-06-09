@@ -2,6 +2,11 @@
 - name: Compliance Check Phase
   hosts: all
   gather_facts: true
+  vars:
+    repo_url: "git@github.com:nerani22/BEL.git"
+    dest_path: "/tmp/BEL"
+    commit_msg: "Generating & commiting remediation"
+
   tasks:
     - name: Format the date
       set_fact:
@@ -15,64 +20,56 @@
       register: compliance_check
       failed_when: false
 
-    - name: Fail if 'faild' is found in log output
-      fail:
-        msg: "The log contains the keyword 'faild'."
-      when: "'fail' in compliance_check.stdout"
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: key
+        mode: '0600'
+        delegate_to: localhost
+    
+    - name: Specifying a path directly
+      ansible.builtin.fetch:
+        src: /tmp/ospp-remediations_{{currentdate_}}.yml
+        dest: /tmp/BEL
+        flat: yes
 
-    - name: Check for failed rules
-      shell: grep 'result="fail"' /tmp/results.xml | wc -l
-      register: failed_count
-      changed_when: false
+    - name: Clone Git repository with SSH key
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ dest_path }}"
+        version: main
+        accept_hostkey: yes
+        key_file: "key"
+        update: yes
+      delegate_to: localhost
 
-    - name: Set compliance status
-      set_fact:
-        non_compliant: true
-      when: failed_count.stdout|int > 0
+    - name: Configure Git username
+      ansible.builtin.command: git config user.name "ansible-bot"
+      args:
+        chdir: "{{ dest_path }}"
+      delegate_to: localhost
 
-- name: Move to Isolation Network (if non-compliant)
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Move node to remediation VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
-      when: non_compliant | default(false)
+    - name: Configure Git email
+      ansible.builtin.command: git config user.email "nrathi@redhat.com"
+      args:
+        chdir: "{{ dest_path }}"
+      delegate_to: localhost
 
-- name: Remediation Phase
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Install required compliance packages
-      yum:
-        name: ['aide', 'audit']
-        state: present
-      when: non_compliant | default(false)
+    - name: Stage the modified file
+      ansible.builtin.command: git add .
+      args:
+        chdir: "{{ dest_path }}"
+      delegate_to: localhost
 
-    - name: Enforce SELinux policy
-      selinux:
-        policy: targeted
-        state: enforcing
-      when: non_compliant | default(false)
+    - name: Commit the changes
+      ansible.builtin.command: git commit -m "{{ commit_msg }}"
+      args:
+        chdir: "{{ dest_path }}"
+      register: commit_result
+      failed_when: commit_result.rc != 0 and "'nothing to commit'" not in commit_result.stderr
+      delegate_to: localhost
 
-    - name: Fix critical file permissions
-      command: /usr/bin/fix-permissions.sh
-      when: non_compliant | default(false)
-
-- name: Re-check Compliance
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Re-run SCAP compliance scan
-      command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
-               --results /tmp/results.xml --report /tmp/report.html \
-               /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
-      register: compliance_recheck
-      failed_when: false
-
-- name: Move Node Back to Production Network
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Revert node to production VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
-      when: non_compliant | default(false)
+    - name: Push changes back to Git repo
+      ansible.builtin.command: git push origin main
+      args:
+        chdir: "{{ dest_path }}"
+      delegate_to: localhost
