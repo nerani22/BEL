@@ -13,7 +13,7 @@
     - name: Fail if 'faild' is found in log output
       fail:
         msg: "The log contains the keyword 'faild'."
-      when: "'faild' in compliance_check.stdout"
+      when: "'fail' in compliance_check.stdout"
 
     - name: Check for failed rules
       shell: grep 'result="fail"' /tmp/results.xml | wc -l
