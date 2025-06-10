@@ -15,59 +15,59 @@
         msg: "The log contains the keyword 'faild'."
       when: "'fail' in compliance_check.stdout"
 
-    - name: Check for failed rules
-      shell: grep 'result="fail"' /tmp/results.xml | wc -l
-      register: failed_count
-      changed_when: false
+#     - name: Check for failed rules
+#       shell: grep 'result="fail"' /tmp/results.xml | wc -l
+#       register: failed_count
+#       changed_when: false
 
-    - name: Set compliance status
-      set_fact:
-        non_compliant: true
-      when: failed_count.stdout|int > 0
+#     - name: Set compliance status
+#       set_fact:
+#         non_compliant: true
+#       when: failed_count.stdout|int > 0
 
-- name: Move to Isolation Network (if non-compliant)
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Move node to remediation VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
-      when: non_compliant | default(false)
+# - name: Move to Isolation Network (if non-compliant)
+#   hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Move node to remediation VLAN
+#       command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
+#       when: non_compliant | default(false)
 
-- name: Remediation Phase
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Install required compliance packages
-      yum:
-        name: ['aide', 'audit']
-        state: present
-      when: non_compliant | default(false)
+# - name: Remediation Phase
+#   hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Install required compliance packages
+#       yum:
+#         name: ['aide', 'audit']
+#         state: present
+#       when: non_compliant | default(false)
 
-    - name: Enforce SELinux policy
-      selinux:
-        policy: targeted
-        state: enforcing
-      when: non_compliant | default(false)
+#     - name: Enforce SELinux policy
+#       selinux:
+#         policy: targeted
+#         state: enforcing
+#       when: non_compliant | default(false)
 
-    - name: Fix critical file permissions
-      command: /usr/bin/fix-permissions.sh
-      when: non_compliant | default(false)
+#     - name: Fix critical file permissions
+#       command: /usr/bin/fix-permissions.sh
+#       when: non_compliant | default(false)
 
-- name: Re-check Compliance
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Re-run SCAP compliance scan
-      command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
-               --results /tmp/results.xml --report /tmp/report.html \
-               /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
-      register: compliance_recheck
-      failed_when: false
+# - name: Re-check Compliance
+#   hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Re-run SCAP compliance scan
+#       command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
+#                --results /tmp/results.xml --report /tmp/report.html \
+#                /usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+#       register: compliance_recheck
+#       failed_when: false
 
-- name: Move Node Back to Production Network
-  hosts: all
-  gather_facts: false
-  tasks:
-    - name: Revert node to production VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
-      when: non_compliant | default(false)
+# - name: Move Node Back to Production Network
+#   hosts: all
+#   gather_facts: false
+#   tasks:
+#     - name: Revert node to production VLAN
+#       command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
+#       when: non_compliant | default(false)
