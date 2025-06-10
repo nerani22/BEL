@@ -1,22 +1,26 @@
 ---
-- name: Genrate Email content to Send in Email | Server is unreachable
-      ansible.builtin.template:
-        src: email_alert.html.j2
-        dest: /tmp/alert_email.html
-      run_once: true  
-      when: ping_result.unreachable is defined
-
-    - name: Email Alert if fail server is unreachable
-      when: ping_result.unreachable is defined
-      mail:
-        host: smtp.gmail.com
-        port: 587
-        subtype: html
-        to:
-        - "nrathi@redhat.com"
-        subject: "Alert: Host not reachable on SSH {{ inventory_hostname }}"
-        body: "{{ lookup('file', '/tmp/alert_email.html') }}"
-        username: "dmeonavneet@gmail.com"
-        password: "rbfqhoincpyouxqk"
-      run_once: true  
-      changed_when: True   
+- name: Check compliance with SCAP
+  hosts: all
+  become: true
+  tasks:
+      - name: Genrate Email content to Send in Email | Server is unreachable
+            ansible.builtin.template:
+              src: email_alert.html.j2
+              dest: /tmp/alert_email.html
+            run_once: true  
+            when: ping_result.unreachable is defined
+      
+          - name: Email Alert if fail server is unreachable
+            when: ping_result.unreachable is defined
+            mail:
+              host: smtp.gmail.com
+              port: 587
+              subtype: html
+              to:
+              - "nrathi@redhat.com"
+              subject: "Alert: Host not reachable on SSH {{ inventory_hostname }}"
+              body: "{{ lookup('file', '/tmp/alert_email.html') }}"
+              username: "dmeonavneet@gmail.com"
+              password: "rbfqhoincpyouxqk"
+            run_once: true  
+            changed_when: True   
