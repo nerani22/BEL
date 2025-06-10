@@ -1,0 +1,14 @@
+---
+- name: Compliance Check Phase
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Move node to remediation VLAN
+      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
+      when: non_compliant | default(false)
+
+    - name: Revert node to production VLAN
+      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
+      when: non_compliant | default(false)
+
+      
