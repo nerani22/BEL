@@ -1,0 +1,20 @@
+---
+- name: Compliance Check Phase
+  hosts: all
+  gather_facts: true
+  tasks:
+    - name: Configure static IP
+      nmcli:
+        conn_name: "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+        ifname: "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+        type: ethernet
+        ip4: "192.168.64.3/24"
+        gw4: "192.168.64.1"
+        state: present
+        autoconnect: true
+
+    - name: Bring connection up
+      command: nmcli con up "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+      async: 15
+      poll: 0
+      
