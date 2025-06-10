@@ -51,11 +51,13 @@
       args:
         chdir: "{{ dest_path }}"
       delegate_to: ctrler
+      become_user: ansible
 
     - name: Commit the changes
       ansible.builtin.command: git commit -m "{{ commit_msg }}"
       args:
         chdir: "{{ dest_path }}"
       register: commit_result
-      delegate_to: ctrler  
+      delegate_to: ctrler
+      become_user: ansible
       failed_when: commit_result.rc != 0 and "'nothing to commit'" not in commit_result.stderr
