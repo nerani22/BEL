@@ -3,12 +3,17 @@
   hosts: all
   gather_facts: true
   tasks:
-    - name: Move node to remediation VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 200
-      when: non_compliant | default(false)
+    - name: Configure static IP
+      nmcli:
+        conn_name: "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+        ifname: "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+        type: ethernet
+        ip4: "192.168.64.50/24"
+        gw4: "192.168.64.1"
+        state: present
 
-    - name: Revert node to production VLAN
-      command: nmcli con mod eth0 connection.autoconnect yes vlan.id 100
-      when: non_compliant | default(false)
+    - name: Bring connection up
+      command: nmcli con up "{{ ansible_interfaces | reject('equalto', 'lo') | list | first }}"
+      
 
       
