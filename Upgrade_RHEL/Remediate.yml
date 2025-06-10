@@ -1,0 +1,61 @@
+---
+- name: Compliance Check Phase
+  hosts: target
+  gather_facts: true
+  vars:
+    repo_url: "git@github.com:nerani22/BEL.git"
+    dest_path: /home/ansible/local_project
+    commit_msg: "Generating & commiting remediation"
+    repo_path: /home/ansible/local_project
+    user: ansible
+    group: ansible
+  tasks:
+    - name: Format the date
+      set_fact:
+       currentdate_: "{{ '%d_%m_%Y' | strftime(ansible_date_time.epoch) }}"
+
+    - name: Run SCAP compliance scan
+      ##command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
+               #--results /tmp/results.xml --report /tmp/report.html \
+               #/usr/share/xml/scap/ssg/content/ssg-rhel9-ds.xml
+#     command: oscap xccdf generate fix --fix-type ansible --profile ospp --output "/tmp/ospp-remediations_{{currentdate_}}.yml" /tmp/results.xml
+      command: oscap xccdf generate fix --fix-type ansible --profile ospp --output "/tmp/ospp-remediations.yml" /tmp/results.xml
+      register: compliance_check
+      failed_when: false
+
+    - name: Change file ownership, group and permissions
+      ansible.builtin.file:
+        path: "{{repo_path}}"
+        state: "directory"  
+        owner: "{{ user }}"
+        group: "100000"  
+      delegate_to: ctrler
+    
+    - name: Specifying a path directly
+      ansible.builtin.fetch:
+        src: /tmp/ospp-remediations.yml
+        dest: /tmp/ #"{{repo_path}}/ospp-remediations_{{currentdate_}}.yml"
+        flat: yes
+          # delegate_to: ctrler 
+
+    - name: copy to ctrl
+      copy:
+        src: /tmp/ospp-remediations.yml
+        dest: "{{ repo_path }}"
+        owner: "{{ user }}"
+        group: "{{ group }}"
+      delegate_to: ctrler    
+
+    - name: Stage the modified file
+      ansible.builtin.command: git add .
+      args:
+        chdir: "{{ dest_path }}"
+      delegate_to: ctrler
+
+    - name: Commit the changes
+      ansible.builtin.command: git commit -m "{{ commit_msg }}"
+      args:
+        chdir: "{{ dest_path }}"
+      register: commit_result
+      delegate_to: ctrler  
+      failed_when: commit_result.rc != 0 and "'nothing to commit'" not in commit_result.stderr
