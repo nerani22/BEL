@@ -10,9 +10,9 @@
     user: ansible
     group: ansible
   tasks:
-    - name: Format the date
-      set_fact:
-       currentdate_: "{{ '%d_%m_%Y' | strftime(ansible_date_time.epoch) }}"
+    #- name: Format the date
+     # set_fact:
+     #  currentdate_: "{{ '%d_%m_%Y' | strftime(ansible_date_time.epoch) }}"
 
     - name: Run SCAP compliance scan
       ##command: oscap xccdf eval --profile xccdf_org.ssgproject.content_profile_anssi_bp28_minimal \
