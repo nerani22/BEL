@@ -6,14 +6,14 @@
   vars:
     leapp_report_dir: "/var/lib/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
-    RHEL_9_ISO: "/opt/repos/rhel-9.6-x86_64-dvd.iso"
+    RHEL_8_ISO: "/opt/repos/rhel-8.6-x86_64-dvd.iso"
     #mount_path: /mnt/rhel9
     #ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
 
   tasks:
     - name: Run Leapp upgrade using ISO
       ansible.builtin.command: >
-        leapp upgrade --no-rhsm --iso {{ RHEL_9_ISO }}
+        leapp upgrade --no-rhsm --iso {{ RHEL_8_ISO }}
       register: upgrade_output
       failed_when: "'FAIL' in upgrade_output.stderr"
       become: yes
