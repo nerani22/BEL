@@ -20,6 +20,14 @@
         state: present
       become: yes
 
+    - name: Remove unsupported AllowZoneDrifting in firewalld
+      lineinfile:
+        path: /etc/firewalld/firewalld.conf
+        regexp: '^AllowZoneDrifting='
+        state: absent
+      notify: Restart firewalld
+      become: yes
+
     - name: Allow root login for SSH temporarily (if disabled)
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
