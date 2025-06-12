@@ -7,7 +7,7 @@
   vars:
     leapp_report_dir: "/var/lib/leapp"
     leapp_artifacts_dir: "/etc/leapp/files"
-    RHEL_8_ISO: "/home/ansible/rhel-8.6-x86_64-dvd.iso"
+    RHEL_8_ISO: "/opt/repos/rhel-8.6-x86_64-dvd.iso"
     #mount_path: /mnt/rhel8
 
   tasks:
