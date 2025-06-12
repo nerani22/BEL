@@ -1,0 +1,60 @@
+---
+- name: RHEL 7.9 to 8.x Upgrade - Phase 1 (Pre-upgrade)
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  vars:
+    leapp_report_dir: "/var/lib/leapp"
+    leapp_artifacts_dir: "/etc/leapp/files"
+    RHEL_8_ISO: "/home/neha/rhel-8.6-x86_64-dvd.iso"
+    #mount_path: /mnt/rhel8
+
+  tasks:
+    - name: Ensure Leapp is installed
+      ansible.builtin.package:
+        name:
+          - leapp
+          - leapp-repository
+          - leapp-upgrade
+        state: present
+      become: yes
+
+    - name: Allow root login for SSH temporarily (if disabled)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin yes'
+        state: present
+      notify: Restart sshd
+      become: yes
+
+    - name: Prepopulate Leapp answerfile
+      ansible.builtin.copy:
+        dest: /var/lib/leapp/answerfile
+        content: |
+          [remove_pam_pkcs11_module_check]
+          confirm = True
+      become: yes
+
+    - name: Run Leapp pre-upgrade using ISO
+      ansible.builtin.command: >
+        leapp preupgrade --no-rhsm --iso {{ RHEL_8_ISO }}
+      register: preupgrade_output
+      failed_when: "'FAIL' in preupgrade_output.stderr"
+      become: yes
+      #ignore_errors: yes
+
+    - name: Check if pre-upgrade passed
+      ansible.builtin.debug:
+        var: preupgrade_output.stdout_lines
+
+    - name: Notify pre-upgrade passed
+      ansible.builtin.debug:
+        msg: "Pre-upgrade passed, ready for upgrade to RHEL 8.x."
+
+  handlers:
+    - name: Restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
