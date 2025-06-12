@@ -19,7 +19,7 @@
 
   tasks:
     - name: “Ensure local RHEL 8.10 repo file exists”
-      copy:
+      ansible.builtin.copy:
         dest: "/etc/yum.repos.d/{{ local_repo_name }}.repo"
         mode: 0644
         content: |
@@ -36,18 +36,18 @@
           gpgcheck=0
 
     - name: “Clean all yum metadata/caches”
-      command: dnf clean all
+      ansible.builtin.command: dnf clean all
       #args:
       #  warn: false
 
     - name: “Verify local repo is reachable”
-      command: dnf repolist --disablerepo="*" --enablerepo="{{ local_repo_name }}-*"
+      ansible.builtin.command: dnf repolist --disablerepo="*" --enablerepo="{{ local_repo_name }}-*"
       register: repo_check
       failed_when: repo_check.rc != 0
       changed_when: false
 
     - name: “Pre‑upgrade | Check available disk space (≥10 GB recommended)”
-      shell: |
+      ansible.builtin.shell: |
         avail=$(df --output=avail / | tail -n1)
         avail_gb=$(( avail / 1024 / 1024 ))
         if [ $avail_gb -lt 10 ]; then
@@ -58,7 +58,7 @@
       failed_when: disk_space.rc != 0
 
     - name: “Pre‑upgrade | Ensure no excluded or locked packages”
-      shell: |
+      ansible.builtin.shell: |
         # If you maintain exclusion lists, fail if any excluded pkgs are installed
         # (example: do not allow kernel-rt or custom builds)
         # Adjust this grep to match any disallowed patterns
@@ -70,7 +70,7 @@
 
     - block:
         - name: “Perform in‑place upgrade to {{ target_release }}”
-          dnf:
+          ansible.builtin.dnf:
             name: "*"
             state: latest
             releasever: "{{ target_release }}"
@@ -81,7 +81,7 @@
           register: upgrade_result
 
         - name: “Record upgrade success message”
-          debug:
+          ansible.builtin.debug:
             msg: "DNF upgrade to {{ target_release }} completed."
 
       rescue:
@@ -97,7 +97,7 @@
           command: sync
 
         - name: “Reboot host”
-          reboot:
+          ansible.builtin.reboot:
             reboot_timeout: 900
             test_command: "rpm -qf /etc/redhat-release"
       rescue:
@@ -119,7 +119,7 @@
           - min
 
     - name: “Post‑upgrade | Report final state”
-      debug:
+      ansible.builtin.debug:
         msg: |
           “{{ inventory_hostname }} successfully upgraded to 
           RHEL {{ ansible_facts['distribution_version'] }}.”
