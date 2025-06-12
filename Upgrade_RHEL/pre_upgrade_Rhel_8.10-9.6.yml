@@ -1,5 +1,5 @@
 ---
-- name: RHEL 8.6 to 9.6 Upgrade - Phase 1 (Pre-upgrade)
+- name: RHEL 8.10 to 9.6 Upgrade - Phase 1 (Pre-upgrade)
   hosts: all
   become: yes
   gather_facts: yes
@@ -7,7 +7,7 @@
   vars:
     #leapp_report_dir: "/var/lib/leapp"
     #leapp_artifacts_dir: "/etc/leapp/files"
-    RHEL_8_ISO: "/opt/repos/rhel-9.6-x86_64-dvd.iso"
+    RHEL_9_ISO: "/opt/repos/rhel-9.6-x86_64-dvd.iso"
     #mount_path: /mnt/rhel8
 
   tasks:
@@ -39,7 +39,7 @@
 
     - name: Run Leapp pre-upgrade using ISO
       ansible.builtin.command: >
-        leapp preupgrade --no-rhsm --iso {{ RHEL_8_ISO }}
+        leapp preupgrade --no-rhsm --iso {{ RHEL_9_ISO }}
       register: preupgrade_output
       failed_when: "'FAIL' in preupgrade_output.stderr"
       become: yes
@@ -51,7 +51,7 @@
 
     - name: Notify pre-upgrade passed
       ansible.builtin.debug:
-        msg: "Pre-upgrade passed, ready for upgrade to RHEL 8.x."
+        msg: "Pre-upgrade passed, ready for upgrade to RHEL 9.x."
 
   handlers:
     - name: Restart sshd
