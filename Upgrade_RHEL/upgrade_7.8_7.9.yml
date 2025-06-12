@@ -1,0 +1,121 @@
+---
+# rhel 7.8_7.9 upgrade.yml
+
+# Upgrade RHEL 7.8 → 7.9 in an air‑gapped AAP 2.5 setup.
+- name: “In‑place upgrade RHEL 7.8 → 7.9 (air‑gapped)”
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    # Set this to wherever your offline mirror lives (e.g., file:///opt/repos/rhel8.10)
+    local_repo_baseurl: file:///opt/repos/rhel7.9
+    # Name for the repo file we’ll create
+    local_repo_name: "rhel-7.9-local"
+    # Desired release version
+    target_release: "7.9"
+    
+  tasks:
+    - name: “Ensure local RHEL 7.9 repo file exists”
+      ansible.builtin.copy:
+        dest: "/etc/yum.repos.d/{{ local_repo_name }}.repo"
+        mode: 0644
+        content: |
+          [{{ local_repo_name }}-BaseOS]
+          name=RHEL 8.10 BaseOS (Local)
+          baseurl={{ local_repo_baseurl }}
+          enabled=1
+          gpgcheck=0
+      #    [{{ local_repo_name }}-AppStream]
+      #    name=RHEL 8.10 AppStream (Local)
+      #    baseurl={{ local_repo_baseurl }}/AppStream
+      #    enabled=1
+      #    gpgcheck=0
+      
+    - name: “Clean all yum metadata/caches”
+      ansible.builtin.command: yum clean all
+      #args:
+      #  warn: false
+      
+    - name: “Verify local repo is reachable”
+      ansible.builtin.command: yum repolist --disablerepo="*" --enablerepo="{{ local_repo_name }}-*"
+      register: repo_check
+      failed_when: repo_check.rc != 0
+      changed_when: false
+
+    - name: “Pre‑upgrade | Check available disk space (≥10 GB recommended)”
+      ansible.builtin.shell: |
+        avail=$(df --output=avail / | tail -n1)
+        avail_gb=$(( avail / 1024 / 1024 ))
+        if [ $avail_gb -lt 10 ]; then
+          echo "ERROR: Only ${avail_gb} GB free (<10 GB)"
+          exit 1
+        fi
+      register: disk_space
+      failed_when: disk_space.rc != 0
+
+    - name: “Pre‑upgrade | Ensure no excluded or locked packages”
+      ansible.builtin.shell: |
+        # If you maintain exclusion lists, fail if any excluded pkgs are installed
+        # (example: do not allow kernel-rt or custom builds)
+        # Adjust this grep to match any disallowed patterns
+        rpm -qa | grep -E 'kernel-rt|customkernel'
+      register: forbidden_pkg
+      failed_when: forbidden_pkg.stdout != ""
+      changed_when: false
+      ignore_errors: false
+
+    - block:
+        - name: “Perform in‑place upgrade to {{ target_release }}”
+          ansible.builtin.yum:
+            name: "*"
+            state: latest
+              # releasever: "{{ target_release }}"
+            update_only: no
+            disablerepo: "*"
+            enablerepo: "{{ local_repo_name }}-*"
+            skip_broken: no
+          register: upgrade_result
+
+        - name: “Record upgrade success message”
+          ansible.builtin.debug:
+            msg: "DNF upgrade to {{ target_release }} completed."
+
+      rescue:
+        - name: “Fail if upgrade task failed”
+          fail:
+            msg: |
+              “DNF upgrade to {{ target_release }} encountered an error. 
+              Please inspect the logs on {{ inventory_hostname }}.”
+
+    - name: “Sync filesystem and reboot into new kernel”
+      block:
+        - name: “Sync disks before reboot”
+          ansible.builtin.command: sync
+
+        - name: “Reboot host”
+          ansible.builtin.reboot:
+            reboot_timeout: 900
+            test_command: "rpm -qf /etc/redhat-release"
+      rescue:
+        - name: “Fail if host did not reboot properly”
+          ansible.builtin.fail:
+            msg: "Host {{ inventory_hostname }} failed to reboot after upgrade."
+
+    - name: “Wait for SSH to come back up”
+      wait_for:
+        port: 22
+        host: "{{ inventory_hostname }}"
+        timeout: 600
+        state: started
+
+    - name: “Gather new facts after reboot”
+      setup:
+        gather_subset:
+          - '!all'
+          - min
+
+    - name: “Post‑upgrade | Report final state”
+      ansible.builtin.debug:
+        msg: |
+          “{{ inventory_hostname }} successfully upgraded to 
+          RHEL {{ ansible_facts['distribution_version'] }}.”
