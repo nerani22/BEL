@@ -30,7 +30,8 @@
 
     - name: Reboot system for upgrade
       ansible.builtin.reboot:
-        reboot_timeout: 900
+        reboot_timeout: 1800
+      ignore_unreachable: true
         #test_command: "rpm -qf /etc/redhat-release"
 
   handlers:
