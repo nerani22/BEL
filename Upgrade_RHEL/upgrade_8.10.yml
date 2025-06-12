@@ -9,7 +9,7 @@
 
   vars:
     # Set this to wherever your offline mirror lives (e.g., file:///opt/repos/rhel8.10)
-    local_repo_baseurl: "file:///opt/repos/"
+    local_repo_baseurl: "file:///opt/repos/rhel8.10"
 
     # Name for the repo file we’ll create
     local_repo_name: "rhel-8.10-local"
