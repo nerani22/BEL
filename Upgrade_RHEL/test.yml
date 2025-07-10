@@ -1,0 +1,15 @@
+---
+- name: test FS
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: FS details
+      ansible.builtin.shell: df -Th
+      register: output
+      become: yes
+      #ignore_errors: yes
+      
+    - name: Show output
+      debug:
+        var: output.stdout_lines
